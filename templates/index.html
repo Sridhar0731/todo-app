@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Todo App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: #1a1a2e;
+            color: #eaeaea;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #e0e0e0;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        input {
+           flex: 1;
+           padding: 12px 16px;
+           background: #16213e;
+           border: 1px solid #2a2a4a;
+           border-radius: 8px;
+           color: #eaeaea;
+           font-size: 1rem;
+           outline: none;
+        }
+        
+        input:focus {
+          border-color: #5e60ce;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: #5e60ce;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #4849a3;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }    
+
+        li {
+            background: #16213e;
+            padding: 16px 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #2a2a4a;
+        }
+
+        li span {
+            font-size: 1rem;
+            color: #eaeaea;
+        }
+
+        .delete-btn {
+            background: transparent;
+            color: #e05c5c;
+            border: 1px solid #e05c5c;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: #e05c5c;
+            color: white;
+        }
+
+        .delete-btn {
+            background: transparent;
+            color: #5e60ce;
+            border: 1px solid #5e60ce;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-right: 8px;
+            transition: all 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: #5e60ce;
+            color: white;
+        }
+
+        select {
+            padding: 12px 16px;
+            background: #16213e;
+            border: 1px solid #2a2a4a;
+            border-radius: 8px;
+            color: #eaeaea;
+            font-size: 1rem;
+            cursor: pointer;
+            outline: none;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <div>
+        <h1>📝 My Tasks</h1>
+        <p class="subtitle">Stay organized, stay focused.</p>
+    </div>
+    <button onclick="logout()" style="width:auto; padding:8px 18px; font-size:0.85rem;">Logout</button>
+    </div>
+        <div class="input-row">
+            <input type="text" id="taskInput" placeholder="Add a new task..."/>
+            <select id="prioritySelect">
+                <option value="high">🔴 High</option>
+                <option value="medium" selected>🟡 Medium</option>
+                <option value="low">🟢 Low</option>
+            </select>
+            <button onclick="addTask()">+ Add</button>
+        </div>
+
+        <ul id="taskList"></ul>
+    </div>
+    <script>
+        function loadTasks() {
+            fetch("/tasks")
+            .then(res => res.json())
+            .then(tasks => {
+                const list = document.getElementById("taskList");
+                list.innerHTML = "";
+                tasks.forEach(task => {
+                    const priorityColor = {
+                        'high': '#e05c5c',
+                        'medium': '#f0a500',
+                        'low': '#4caf50'
+                    };
+                    list.innerHTML += `
+                    <li>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="background:${priorityColor[task.priority]}; 
+                            padding:3px 10px; border-radius:12px; 
+                            font-size:0.75rem;">${task.priority}</span>
+                           <span style="${task.done ? 'text-decoration:line-through; color:#555;' : ''}">${task.title}</span>
+                        </div>
+                        <div>
+                            ${!task.done ? `<button class="done-btn" onclick="completeTask(${task.id})">✓ Done</button>` : ''}
+                            <button class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
+                        </div>
+                    </li>
+                    `;    
+                });
+            });
+        }
+
+        function addTask() {
+            const input = document.getElementById("taskInput");
+            const priority = document.getElementById("prioritySelect").value;
+            const title = input.value;
+
+            fetch("/tasks", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({title: title, priority: priority})
+            })
+            .then(res => res.json())
+            .then(data => {
+                input.value = "";
+                loadTasks();
+            });
+        }
+
+        function deleteTask(id) {
+            fetch(`/tasks/${id}` , {
+                method: "DELETE"
+            })
+            .then(res => res.json())
+            .then(data => {
+                loadTasks();
+            });
+        }
+
+        loadTasks();
+
+        function completeTask(id) {
+            fetch(`/tasks/${id}` , {
+                method: "PUT"
+            })
+            .then(res => res.json())
+            .then(data => {
+            loadTasks();
+            });
+        }
+
+        function logout() {
+
+            fetch("/logout", {
+                method: "POST"
+            })
+        .then(res => res.json())
+        .then(data => {
+            window.location.href = "/login-page";
+        });
+        }    
+    </script>
+</body>
+</html>
