@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <title>Todo App</title>
     <style>
+        :root {
+            --bg: #1a1a2e;
+            --card: #16213e;
+            --text: #eaeaea;
+            --subtext: #888;
+            --border: #2a2a4a;
+            --accent: #5e60ce;
+            --accent-hover: #4849a3; 
+        }
+
+        body.light {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --text: #1a1a2e;
+            --subtext: #555;
+            --border: #dedede;
+            --accent: #4444cc;
+            --accent-hover: #3333aa;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,13 +32,13 @@
         }
 
         body {
-            background: #1a1a2e;
-            color: #eaeaea;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             padding: 40px 20px;
-        }
+        }    
 
         .container {
             width: 100%;
@@ -29,11 +49,12 @@
             font-size: 2rem;
             font-weight: 600;
             margin-bottom: 8px;
-            color: #e0e0e0;
+            color: var(--accent);
+            font-family: 'Segoe UI', sans-serif;
         }
 
         .subtitle {
-            color: #888;
+            color: var(--subtext);
             font-size: 0.9rem;
             margin-bottom: 30px;
         }
@@ -47,21 +68,21 @@
         input {
            flex: 1;
            padding: 12px 16px;
-           background: #16213e;
-           border: 1px solid #2a2a4a;
+           background: var(--card);
+           border: 1px solid var(--border);
            border-radius: 8px;
-           color: #eaeaea;
+           color: var(--text);
            font-size: 1rem;
            outline: none;
         }
         
         input:focus {
-          border-color: #5e60ce;
+          border-color: var(--accent);
         }
 
         button {
             padding: 12px 20px;
-            background: #5e60ce;
+            background: var(--accent);
             color: white;
             border: none;
             border-radius: 8px;
@@ -71,7 +92,7 @@
         }
 
         button:hover {
-            background: #4849a3;
+            background: var(--accent);
         }
 
         ul {
@@ -83,24 +104,24 @@
         }    
 
         li {
-            background: #16213e;
+            background: var(--card);
             padding: 16px 20px;
             border-radius: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border: 1px solid #2a2a4a;
+            border: 1px solid var(--border);
         }
 
         li span {
             font-size: 1rem;
-            color: #eaeaea;
+            color: var(--text);
         }
 
         .delete-btn {
             background: transparent;
-            color: #e05c5c;
-            border: 1px solid #e05c5c;
+            color: var(--accent);
+            border: 1px solid var(--accent);
             padding: 6px 14px;
             border-radius: 6px;
             font-size: 0.85rem;
@@ -132,10 +153,10 @@
 
         select {
             padding: 12px 16px;
-            background: #16213e;
-            border: 1px solid #2a2a4a;
+            background: var(--accent);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            color: #eaeaea;
+            color: white;
             font-size: 1rem;
             cursor: pointer;
             outline: none;
@@ -149,10 +170,14 @@
         <h1>📝 My Tasks</h1>
         <p class="subtitle">Stay organized, stay focused.</p>
     </div>
-    <button onclick="logout()" style="width:auto; padding:8px 18px; font-size:0.85rem;">Logout</button>
+    <div style="display:flex; gap: 10px;">
+        <button onclick="toggleTheme()" style="width: auto; padding:8px 18px; font-size:0.85rem; background:transparent; border:1px solid var(--accent); color:var(--accent);">🌙 Dark</button>
+        <button onclick="logout()" style="width:auto; padding:8px 18px; font-size:0.85rem;">Logout</button>
+    </div>
     </div>
         <div class="input-row">
             <input type="text" id="taskInput" placeholder="Add a new task..."/>
+            <input type="date" id="dueDateInput"/>
             <select id="prioritySelect">
                 <option value="high">🔴 High</option>
                 <option value="medium" selected>🟡 Medium</option>
@@ -164,6 +189,24 @@
         <ul id="taskList"></ul>
     </div>
     <script>
+        function getDaysLeft(due_date) {
+            if (!due_date || due_date === "" || due_date === "None") return "";
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const due = new Date(due_date);
+
+            if (isNaN(due.getTime())) return ""; 
+
+            due.setHours(0, 0, 0, 0);
+            
+            const diff = Math.round((due - today) / (1000 * 60 * 60 * 24));
+
+            if (diff < 0) return `<span style="color:#e05c5c">⚠️ Overdue by ${Math.abs(diff)} day(s)!</span>`;
+            if (diff === 0) return `<span style="color:#f0a500">🔥Due today!</span>`;
+            if (diff <= 2) return `<span style="color:#f0a550">⏰ ${diff} day(s) left</span>`;
+            return `<span style="color:#4caf50">📅 ${diff} days left</span>`;
+        }
         function loadTasks() {
             fetch("/tasks")
             .then(res => res.json())
@@ -178,12 +221,15 @@
                     };
                     list.innerHTML += `
                     <li>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <span style="background:${priorityColor[task.priority]}; 
-                            padding:3px 10px; border-radius:12px; 
-                            font-size:0.75rem;">${task.priority}</span>
-                           <span style="${task.done ? 'text-decoration:line-through; color:#555;' : ''}">${task.title}</span>
-                        </div>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="background:${priorityColor[task.priority]}; padding:3px 10px; border-radius:12px; font-size:0.75rem;">${task.priority}</span>
+                                <span style="${task.done ? 'text-decoration:line-through; color:#555;' : ''}">${task.title}</span>
+                           </div>
+                           <div style="font-size:0.8rem: padding-left:4px;">
+                            ${getDaysLeft(task.due_date)}
+                           </div>
+                        </div>       
                         <div>
                             ${!task.done ? `<button class="done-btn" onclick="completeTask(${task.id})">✓ Done</button>` : ''}
                             <button class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
@@ -197,12 +243,14 @@
         function addTask() {
             const input = document.getElementById("taskInput");
             const priority = document.getElementById("prioritySelect").value;
+            const due_date = document.getElementById("dueDateInput").value;
+            console.log("Date value:", due_date);
             const title = input.value;
 
             fetch("/tasks", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({title: title, priority: priority})
+                body: JSON.stringify({title: title, priority: priority, due_date: due_date})
             })
             .then(res => res.json())
             .then(data => {
@@ -243,6 +291,12 @@
             window.location.href = "/login-page";
         });
         }    
+
+        function toggleTheme() {
+            document.body.classList.toggle("light");
+            const btn = document.querySelector("button[onclick='toggleTheme()']");
+            btn.textContent = document.body.classList.contains("light") ? "🌙 Dark" : "☀️ Light";
+        }
     </script>
 </body>
 </html>

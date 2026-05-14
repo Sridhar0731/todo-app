@@ -30,6 +30,13 @@ def init_db():
         conn.commit()
     except:
         pass    
+
+    try:
+        cursor.execute("ALTER TABLE tasks ADD COLUMN due_date TEXT")
+        conn.commit()
+    except:
+        pass
+
     conn.commit()
     conn.close()
 
@@ -62,7 +69,8 @@ def get_tasks():
             "id" : row[0],
             "title" : row[1],
             "done" : row[2],
-            "priority": row[3]
+            "priority": row[3],
+            "due_date": row[5]
         })
 
     return jsonify(tasks)
@@ -76,10 +84,11 @@ def add_task():
     data = request.get_json()
     title = data["title"]
     priority = data.get("priority", "medium")
+    due_date = data.get("due_date", None)
 
     conn=sqlite3.connect("tasks.db")
     cursor=conn.cursor()
-    cursor.execute("INSERT INTO tasks (title, priority, user_id) VALUES (?, ?, ?)", (title, priority, user_id))
+    cursor.execute("INSERT INTO tasks (title, priority, user_id, due_date) VALUES (?, ?, ?, ?)", (title, priority, user_id, due_date))
     conn.commit()
     conn.close
 
